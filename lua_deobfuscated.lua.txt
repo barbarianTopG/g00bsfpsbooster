@@ -1,0 +1,445 @@
+_G.Settings = {
+	Players = {
+		["Ignore Me"] = true,
+		["Ignore Others"] = true
+	},
+	Meshes = {
+		Destroy = false,
+		LowDetail = true
+	},
+	Images = {
+		Invisible = true,
+		LowDetail = false,
+		Destroy = false
+	},
+	["No Particles"] = true,
+	["No Camera Effects"] = true,
+	["No Explosions"] = true,
+	["No Clothes"] = true,
+	["Low Water Graphics"] = true,
+	["No Shadows"] = true,
+	["Low Rendering"] = true,
+	["Low Quality Parts"] = true,
+	PingOptimizations = true,
+	NetworkOptimizations = true,
+	RenderDistance = 100,
+	SimplifyTerrain = true,
+	DisableLightingEffects = true,
+	DisablePhysics = true,
+	EnableLOD = true,
+	CompressTextures = true,
+	DisableAnimations = true,
+	OptimizeGC = true,
+	DynamicFrameRate = true,
+	TargetPing = 40,
+	FastFlags = {
+		FFlagDebugGraphicsPreferVulkan = "True",
+		FFlagGraphicsGLTextureReduction = "True",
+		DFFlagTextureQualityOverrideEnabled = "True",
+		DFIntTextureQualityOverride = "0",
+		FFlagRenderingUseMobileTextureStreaming = "True",
+		FFlagRenderingUseMobileTextureStreamingOnPC = "True",
+		FFlagDisablePostFx = "True",
+		DFIntCSGLevelOfDetailSwitchingDistance = "250",
+		DFIntCSGLevelOfDetailSwitchingDistanceL12 = "500",
+		DFIntCSGLevelOfDetailSwitchingDistanceL23 = "750",
+		DFIntCSGLevelOfDetailSwitchingDistanceL34 = "1000",
+		FIntDebugTextureManagerSkipMips = "-1",
+		DFIntDebugFRMQualityLevelOverride = "1",
+		FFlagDebugGraphicsDisableDirect3D11 = "True",
+		FFlagDebugForceFastLighting = "True",
+		DFIntRenderQualityOverride = "1",
+		FFlagDisableCameraBob = "True",
+		DFIntTaskSchedulerTargetFps = "29383",
+		FFlagGameBasicSettingsFramerateCap5 = "False",
+		FFlagTaskSchedulerLimitTargetFpsTo2402 = "False",
+		DFIntS2PhysicsSenderRate = "1",
+		FIntPGSAngularDampingPermilPersecond = "0",
+		FFlagPhysicsOptimizeForLowEnd = "True",
+		FFlagNetworkReduceLatency = "True",
+		DFIntNetworkExtrapolationLimitMs = "30",
+		FIntNetworkPredictionLimit = "10",
+		FFlagEnablePacketCompression = "True",
+		DFIntNetworkPacketSendRate = "50",
+		FFlagOptimizeNetworkReplication = "True",
+		FFlagDisableClientSidePrediction = "True"
+	}
+}
+local function applyFastFlags()
+	if _G.Settings.FastFlags then
+		local success, err = pcall(function()
+			for flag, value in pairs(_G.Settings.FastFlags) do
+				(syn.set_fflag or set_fflag or setfflag)(flag, tostring(value))
+			end
+		end)
+		if not success then
+			warn("Error applying fast flags: " .. tostring(err))
+		else
+			print("Fast flags applied successfully")
+		end
+	end
+end;
+local function optimizeSettings()
+	local RunService = game:GetService("RunService")
+	local Lighting = game:GetService("Lighting")
+	local Workspace = game:GetService("Workspace")
+	local Players = game:GetService("Players")
+	if _G.Settings["No Particles"] then
+		for _, obj in pairs(Workspace:GetDescendants()) do
+			if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Fire") or obj:IsA("Sparkles") then
+				obj.Enabled = false
+			end
+		end
+	end;
+	if _G.Settings["No Camera Effects"] then
+		local camera = Workspace.CurrentCamera;
+		if camera then
+			for _, effect in pairs(camera:GetDescendants()) do
+				if effect:IsA("PostEffect") then
+					effect.Enabled = false
+				end
+			end
+		end
+	end;
+	if _G.Settings["Low Rendering"] then
+		local success, err = pcall(function()
+			settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+		end)
+		if not success then
+			warn("Failed to set rendering quality: " .. tostring(err))
+		end
+	end;
+	if _G.Settings["Low Quality Parts"] then
+		for _, part in pairs(Workspace:GetDescendants()) do
+			if part:IsA("BasePart") and not part:IsA("MeshPart") then
+				part.Material = Enum.Material.SmoothPlastic;
+				part.Reflectance = 0
+			end
+		end
+	end;
+	if _G.Settings["No Clothes"] then
+		for _, player in pairs(Players:GetPlayers()) do
+			local character = player.Character;
+			if character and (_G.Settings.Players["Ignore Me"] and player ~= Players.LocalPlayer or _G.Settings.Players["Ignore Others"]) then
+				for _, obj in pairs(character:GetChildren()) do
+					if obj:IsA("Clothing") or obj:IsA("Accessory") then
+						obj:Destroy()
+					end
+				end
+			end
+		end
+	end;
+	if _G.Settings["Low Water Graphics"] then
+		local terrain = Workspace:FindFirstChild("Terrain")
+		if terrain then
+			terrain.WaterReflectance = 0;
+			terrain.WaterTransparency = 1
+		end
+	end;
+	if _G.Settings["No Shadows"] then
+		if Lighting then
+			Lighting.GlobalShadows = false
+		end
+	end;
+	if _G.Settings["No Explosions"] then
+		for _, obj in pairs(Workspace:GetDescendants()) do
+			if obj:IsA("Explosion") then
+				obj.Visible = false
+			end
+		end
+	end
+end;
+local function optimizeMeshes()
+	local Workspace = game:GetService("Workspace")
+	for _, mesh in pairs(Workspace:GetDescendants()) do
+		if mesh:IsA("MeshPart") then
+			if _G.Settings.Meshes.LowDetail then
+				mesh.Reflectance = 0;
+				mesh.Material = Enum.Material.SmoothPlastic;
+				mesh.TextureId = ""
+			end;
+			if _G.Settings.Meshes.Destroy then
+				mesh:Destroy()
+			end
+		end
+	end
+end;
+local function optimizeImages()
+	local Workspace = game:GetService("Workspace")
+	for _, img in pairs(Workspace:GetDescendants()) do
+		if img:IsA("Decal") or img:IsA("Texture") then
+			if _G.Settings.Images.Invisible then
+				img.Transparency = 1
+			end;
+			if _G.Settings.Images.LowDetail then
+				img.Texture = ""
+			end;
+			if _G.Settings.Images.Destroy then
+				img:Destroy()
+			end
+		end
+	end
+end;
+local function optimizePing()
+	if _G.Settings.PingOptimizations then
+		local RunService = game:GetService("RunService")
+		local Players = game:GetService("Players")
+		local function checkPing()
+			local player = Players.LocalPlayer;
+			if player then
+				local ping = player:GetNetworkPing() * 1000;
+				if ping > _G.Settings.TargetPing then
+					_G.Settings.Meshes.LowDetail = true;
+					_G.Settings.Images.LowDetail = true;
+					_G.Settings["Low Rendering"] = true;
+					_G.Settings["No Shadows"] = true;
+					_G.Settings["No Camera Effects"] = true;
+					_G.Settings["No Particles"] = true;
+					_G.Settings.FastFlags.DFIntNetworkExtrapolationLimitMs = "20"
+					_G.Settings.FastFlags.DFIntNetworkPacketSendRate = "60"
+					applyFastFlags()
+				else
+					_G.Settings.Meshes.LowDetail = false;
+					_G.Settings.Images.LowDetail = false;
+					_G.Settings["Low Rendering"] = false;
+					_G.Settings["No Shadows"] = false;
+					_G.Settings["No Camera Effects"] = false;
+					_G.Settings["No Particles"] = false;
+					_G.Settings.FastFlags.DFIntNetworkExtrapolationLimitMs = "30"
+					_G.Settings.FastFlags.DFIntNetworkPacketSendRate = "50"
+					applyFastFlags()
+				end;
+				local StarterGui = game:GetService("StarterGui")
+				if StarterGui then
+					pcall(function()
+						StarterGui:SetCore("SendNotification", {
+							Title = "Ping Status",
+							Text = "Current ping: " .. math.floor(ping) .. "ms (Target: " .. _G.Settings.TargetPing .. "ms)",
+							Duration = 3
+						})
+					end)
+				end
+			end
+		end;
+		RunService.Heartbeat:Connect(checkPing)
+	end
+end;
+local function optimizeNetwork()
+	if _G.Settings.NetworkOptimizations then
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
+		for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+			if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and not string.match(obj.Name, "Critical") then
+				obj.Name = obj.Name .. "_Disabled"
+			end
+		end
+	end
+end;
+local function optimizeRenderDistance()
+	if _G.Settings.RenderDistance then
+		local camera = game:GetService("Workspace").CurrentCamera;
+		if camera then
+			local success, err = pcall(function()
+				camera.MaximumRenderDistance = _G.Settings.RenderDistance
+			end)
+			if not success then
+				warn("Failed to set render distance: " .. tostring(err))
+			end
+		end
+	end
+end;
+local function simplifyTerrain()
+	if _G.Settings.SimplifyTerrain then
+		local terrain = game:GetService("Workspace"):FindFirstChild("Terrain")
+		if terrain then
+			terrain.WaterWaveSize = 0;
+			terrain.WaterWaveSpeed = 0;
+			terrain.Material = Enum.Material.SmoothPlastic
+		end
+	end
+end;
+local function optimizeLighting()
+	if _G.Settings.DisableLightingEffects then
+		local Lighting = game:GetService("Lighting")
+		if Lighting then
+			Lighting.GlobalShadows = false;
+			Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+			Lighting.Brightness = 2;
+			Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+			for _, effect in pairs(Lighting:GetDescendants()) do
+				if effect:IsA("Sky") or effect:IsA("Atmosphere") then
+					effect:Destroy()
+				end
+			end
+		end
+	end
+end;
+local function optimizePhysics()
+	if _G.Settings.DisablePhysics then
+		local Workspace = game:GetService("Workspace")
+		local Players = game:GetService("Players")
+		for _, obj in pairs(Workspace:GetDescendants()) do
+			if obj:IsA("BasePart") and not obj:IsA("MeshPart") and not obj:IsDescendantOf(Players.LocalPlayer.Character) then
+				obj.Anchored = true;
+				obj.CanCollide = false
+			end
+		end
+	end
+end;
+local function optimizeLOD()
+	if _G.Settings.EnableLOD then
+		local RunService = game:GetService("RunService")
+		local camera = game:GetService("Workspace").CurrentCamera;
+		RunService.Heartbeat:Connect(function()
+			for _, obj in pairs(game:GetService("Workspace"):GetDescendants()) do
+				if obj:IsA("MeshPart") then
+					local distance = (obj.Position - camera.CFrame.Position).Magnitude;
+					if distance > _G.Settings.RenderDistance / 2 then
+						obj.Material = Enum.Material.SmoothPlastic;
+						obj.Reflectance = 0;
+						obj.TextureId = ""
+					end
+				end
+			end
+		end)
+	end
+end;
+local function compressTextures()
+	if _G.Settings.CompressTextures then
+		local Workspace = game:GetService("Workspace")
+		for _, obj in pairs(Workspace:GetDescendants()) do
+			if obj:IsA("Texture") or obj:IsA("Decal") then
+				obj.Texture = ""
+			end
+		end
+	end
+end;
+local function disableAnimations()
+	if _G.Settings.DisableAnimations then
+		local Players = game:GetService("Players")
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= Players.LocalPlayer then
+				local character = player.Character;
+				if character then
+					for _, anim in pairs(character:GetDescendants()) do
+						if anim:IsA("Animation") or anim:IsA("AnimationController") then
+							anim:Destroy()
+						end
+					end
+				end
+			end
+		end
+	end
+end;
+local function optimizeGC()
+	if _G.Settings.OptimizeGC then
+		local RunService = game:GetService("RunService")
+		RunService.Heartbeat:Connect(function()
+			collectgarbage("collect")
+			collectgarbage("setpause", 200)
+			collectgarbage("setstepmul", 500)
+		end)
+	end
+end;
+local function setDynamicFrameRate()
+	if _G.Settings.DynamicFrameRate then
+		local RunService = game:GetService("RunService")
+		local targetFPS = 30;
+		local success, err = pcall(function()
+			settings().Rendering.TargetFrameRate = targetFPS
+		end)
+		if not success then
+			warn("Failed to set frame rate: " .. tostring(err))
+		end;
+		RunService:Set3dRenderingEnabled(true)
+	end
+end;
+local function monitorPerformance()
+	local RunService = game:GetService("RunService")
+	local Players = game:GetService("Players")
+	local StarterGui = game:GetService("StarterGui")
+	RunService.Heartbeat:Connect(function()
+		local player = Players.LocalPlayer;
+		if player then
+			local ping = math.floor(player:GetNetworkPing() * 1000)
+			local fps = math.floor(1 / RunService.Heartbeat:Wait())
+			pcall(function()
+				StarterGui:SetCore("SendNotification", {
+					Title = "Performance",
+					Text = "FPS: " .. fps .. " | Ping: " .. ping .. "ms",
+					Duration = 5
+				})
+			end)
+		end
+	end)
+end;
+local function createFastFlagUI()
+	local StarterGui = game:GetService("StarterGui")
+	local Players = game:GetService("Players")
+	local ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+	local Frame = Instance.new("Frame", ScreenGui)
+	Frame.Size = UDim2.new(0, 250, 0, 400)
+	Frame.Position = UDim2.new(0, 10, 0, 10)
+	Frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	local yOffset = 10;
+	for flag, value in pairs(_G.Settings.FastFlags) do
+		local Toggle = Instance.new("TextButton", Frame)
+		Toggle.Size = UDim2.new(0, 230, 0, 30)
+		Toggle.Position = UDim2.new(0, 10, 0, yOffset)
+		Toggle.Text = flag .. ": " .. tostring(value)
+		Toggle.BackgroundColor3 = (value == "True" or tonumber(value) <= 1) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+		Toggle.MouseButton1Click:Connect(function()
+			_G.Settings.FastFlags[flag] = (value == "True" or tonumber(value) <= 1) and "False" or "True"
+			applyFastFlags()
+			Toggle.Text = flag .. ": " .. tostring(_G.Settings.FastFlags[flag])
+			Toggle.BackgroundColor3 = (_G.Settings.FastFlags[flag] == "True" or tonumber(_G.Settings.FastFlags[flag]) <= 1) and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+		end)
+		yOffset = yOffset + 40
+	end
+end;
+local function loadFPSBoost()
+	local url = "https://raw.githubusercontent.com/GRIPPERTV/FPS-Booster/main/Source.lua"
+	local success, err = pcall(function()
+		loadstring(game:HttpGet(url))()
+	end)
+	if not success then
+		warn("Error loading external FPS Boost script: " .. tostring(err))
+	else
+		print("External FPS Boost script loaded successfully")
+	end
+end;
+local function showNotification()
+	local StarterGui = game:GetService("StarterGui")
+	if StarterGui then
+		local success, err = pcall(function()
+			StarterGui:SetCore("SendNotification", {
+				Title = "FPS Boost Loaded",
+				Text = "Enhanced FPS Boost and Anti-Lag Script with Fast Flags has been successfully loaded!",
+				Icon = "rbxassetid://123456789",
+				Duration = 5
+			})
+		end)
+		if not success then
+			warn("Failed to show notification: " .. tostring(err))
+		end
+	end
+end;
+applyFastFlags()
+optimizeSettings()
+optimizeMeshes()
+optimizeImages()
+optimizePing()
+optimizeNetwork()
+optimizeRenderDistance()
+simplifyTerrain()
+optimizeLighting()
+optimizePhysics()
+optimizeLOD()
+compressTextures()
+disableAnimations()
+optimizeGC()
+setDynamicFrameRate()
+monitorPerformance()
+createFastFlagUI()
+-- loadFPSBoost() url is gone
+showNotification()
